@@ -1,6 +1,5 @@
 package reductions
 
-import scala.annotation._
 import org.scalameter._
 
 object ParallelParenthesesBalancingRunner {
@@ -14,7 +13,7 @@ object ParallelParenthesesBalancingRunner {
     Key.exec.maxWarmupRuns -> 80,
     Key.exec.benchRuns -> 120,
     Key.verbose -> true
-  ) withWarmer(new Warmer.Default)
+  ) withWarmer (new Warmer.Default)
 
   def main(args: Array[String]): Unit = {
     val length = 100000000
@@ -40,7 +39,18 @@ object ParallelParenthesesBalancing extends ParallelParenthesesBalancingInterfac
   /** Returns `true` iff the parentheses in the input `chars` are balanced.
    */
   def balance(chars: Array[Char]): Boolean = {
-    ???
+    var i = 1
+    var acc = 0
+
+    while (i < chars.length) {
+      if (acc < 0) return false
+      else if (chars(i) == '(') acc += 1
+      else if (chars(i) == ')') acc -= 1
+
+      i += 1
+    }
+
+    acc == 0
   }
 
   /** Returns `true` iff the parentheses in the input `chars` are balanced.
