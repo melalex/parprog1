@@ -43,13 +43,11 @@ class KMeans extends KMeansInterface {
     closest
   }
 
-  def classify(points: Seq[Point], means: Seq[Point]): Map[Point, Seq[Point]] = {
-    ???
-  }
+  def classify(points: Seq[Point], means: Seq[Point]): Map[Point, Seq[Point]] =
+    means.map((_, Seq())).toMap ++ points.groupBy(findClosest(_, means))
 
-  def classify(points: ParSeq[Point], means: ParSeq[Point]): ParMap[Point, ParSeq[Point]] = {
-    ???
-  }
+  def classify(points: ParSeq[Point], means: ParSeq[Point]): ParMap[Point, ParSeq[Point]] =
+    means.map((_, ParSeq())).toMap ++ points.groupBy(findClosest(_, means))
 
   def findAverage(oldMean: Point, points: Seq[Point]): Point = if (points.isEmpty) oldMean else {
     var x = 0.0
@@ -75,44 +73,59 @@ class KMeans extends KMeansInterface {
     new Point(x / points.length, y / points.length, z / points.length)
   }
 
-  def update(classified: Map[Point, Seq[Point]], oldMeans: Seq[Point]): Seq[Point] = {
-    ???
-  }
+  def update(classified: Map[Point, Seq[Point]], oldMeans: Seq[Point]): Seq[Point] = for {
+    c <- oldMeans
+    points <- classified.get(c)
+  } yield findAverage(c, points)
 
-  def update(classified: ParMap[Point, ParSeq[Point]], oldMeans: ParSeq[Point]): ParSeq[Point] = {
-    ???
-  }
+  def update(classified: ParMap[Point, ParSeq[Point]], oldMeans: ParSeq[Point]): ParSeq[Point] = for {
+    c <- oldMeans
+    points <- classified.get(c)
+  } yield findAverage(c, points)
 
-  def converged(eta: Double, oldMeans: Seq[Point], newMeans: Seq[Point]): Boolean = {
-    ???
-  }
+  def converged(eta: Double, oldMeans: Seq[Point], newMeans: Seq[Point]): Boolean = oldMeans
+    .zip(newMeans)
+    .forall { case (om, nm) => om.squareDistance(nm) <= eta }
 
-  def converged(eta: Double, oldMeans: ParSeq[Point], newMeans: ParSeq[Point]): Boolean = {
-    ???
-  }
+  def converged(eta: Double, oldMeans: ParSeq[Point], newMeans: ParSeq[Point]): Boolean = oldMeans
+    .zip(newMeans)
+    .forall { case (om, nm) => om.squareDistance(nm) <= eta }
 
   @tailrec
   final def kMeans(points: Seq[Point], means: Seq[Point], eta: Double): Seq[Point] = {
-    if (???) kMeans(???, ???, ???) else ??? // your implementation need to be tail recursive
+    val newMeans = update(classify(points, means), means)
+
+    if (converged(eta, means, newMeans)) newMeans
+    else kMeans(points, newMeans, eta)
   }
 
   @tailrec
   final def kMeans(points: ParSeq[Point], means: ParSeq[Point], eta: Double): ParSeq[Point] = {
-    if (???) kMeans(???, ???, ???) else ??? // your implementation need to be tail recursive
+    val newMeans = update(classify(points, means), means)
+
+    if (converged(eta, means, newMeans)) newMeans
+    else kMeans(points, newMeans, eta)
   }
 }
 
 /** Describes one point in three-dimensional space.
- *
- *  Note: deliberately uses reference equality.
- */
+  *
+  * Note: deliberately uses reference equality.
+  */
 class Point(val x: Double, val y: Double, val z: Double) {
   private def square(v: Double): Double = v * v
+
   def squareDistance(that: Point): Double = {
-    square(that.x - x)  + square(that.y - y) + square(that.z - z)
+    square(that.x - x) + square(that.y - y) + square(that.z - z)
   }
+
   private def round(v: Double): Double = (v * 100).toInt / 100.0
+
   override def toString = s"(${round(x)}, ${round(y)}, ${round(z)})"
+}
+
+object Point {
+  def apply(x: Double, y: Double, z: Double) = new Point(x, y, z)
 }
 
 
@@ -123,7 +136,7 @@ object KMeansRunner {
     Key.exec.maxWarmupRuns -> 40,
     Key.exec.benchRuns -> 25,
     Key.verbose -> true
-  ) withWarmer(new Warmer.Default)
+  ) withWarmer (new Warmer.Default)
 
   def main(args: Array[String]): Unit = {
     val kMeans = new KMeans()
